@@ -12,3 +12,5 @@ wavenet_vocoder/egs/exp/intermediate/
 wavenet_vocoder/egs/tensorboard/
 voice_conversion/data/
 wavenet_vocoder/data/
+
+.python-version

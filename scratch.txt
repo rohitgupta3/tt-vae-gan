@@ -1,0 +1,133 @@
+Think infer.sh is what's used to use wavenet_vocoder.
+This is located in wavenet_vocoder/egs/gaussian
+
+---
+
+Inference
+
+FROM README:
+spk="flickr_1" inferdir="initial_99_G1_S2" ./infer.sh
+
+In forked_voice_conversion, I generated this directory: pretrained_99_G1
+So something like the following is closer to what I need:
+spk="flickr_1" inferdir="pretrained_99_G1" ./infer.sh
+
+What's confusing here is that the README here seems to suggest that the inference is going from one speaker to the other, but I thought I was using the Wavenet vocoder to "improve" the original (Griffin Lim) output to a more realistic sound.
+
+From wavenet_vocoder/egs/gaussian, did:
+spk="flickr_1" inferdir="pretrained_99_G1" ./infer.sh
+LEADS TO:
+usage: basename string [suffix]
+       basename [-a] [-s suffix] string [...]
+
+spk="flickr_1" inferdir="pretrained_99_G1" hparams=conf/flickr.json ./infer.sh
+LEADS TO
+stage 1: Feature Generation
+Traceback (most recent call last):
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//preprocess.py", line 13, in <module>
+    from docopt import docopt
+ModuleNotFoundError: No module named 'docopt'
+
+So I went to set up the python environment and install dependencies...
+
+Set up environment -- went to root of repo then
+pyenv local 3.7.7
+pyenv virtualenv 3.7.7 tt-vae-gan
+pyenv local tt-vae-gan
+pyenv activate tt-vae-gan
+
+Install dependencies -- went into wavenet_vocoder/wavenet_vocoder, and did (as per the wavenet_vocoder repo's README, I think)
+pip install -e .
+AND GOT
+ERROR: File "setup.py" or "setup.cfg" not found. Directory cannot be installed in editable mode: /Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/wavenet_vocoder
+
+Install dependencies -- stayed in wavenet_vocoder/wavenet_vocoder, and did (also, as per the wavenet_vocoder repo's README, I think)
+pip install wavenet_vocoder
+WHICH WORKED (?)
+
+Try inference again, from within wavenet_vocoder/egs/gaussian:
+spk="flickr_1" inferdir="pretrained_99_G1" hparams=conf/flickr.json ./infer.sh
+STILL GETTING
+stage 1: Feature Generation
+Traceback (most recent call last):
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//preprocess.py", line 13, in <module>
+    from docopt import docopt
+ModuleNotFoundError: No module named 'docopt'
+
+Went to wavenet_vocoder, noticed setup.py existed in this directory, so going off above error message, decided to try this again at this location:
+pip install -e .
+WHICH WORKED (?)
+
+Again, from wavenet_vocoder/egs/gaussian, did:
+spk="flickr_1" inferdir="pretrained_99_G1" hparams=conf/flickr.json ./infer.sh
+AND GOT
+stage 1: Feature Generation
+Sampling frequency: 16000
+0it [00:00, ?it/s]
+Wrote 0 utterances, 0 time steps (0.00 hours)
+Traceback (most recent call last):
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//preprocess.py", line 71, in <module>
+    preprocess(mod, in_dir, out_dir, num_workers)
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//preprocess.py", line 25, in preprocess
+    write_metadata(metadata, out_dir)
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//preprocess.py", line 36, in write_metadata
+    print('Min frame length: %d' % min(m[2] for m in metadata))
+ValueError: min() arg is an empty sequence
+
+Decided to copy the generated audio from forked_voice_conversion to this repo i.e. copied out_infer from the root of the forked_voice_conversion repo to this repo's voice_conversion/src directory
+
+Again, from wavenet_vocoder/egs/gaussian, did:
+spk="flickr_1" inferdir="pretrained_99_G1" hparams=conf/flickr.json ./infer.sh
+AND GOT
+stage 1: Feature Generation
+Sampling frequency: 16000
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 38.65it/s]
+Wrote 1 utterances, 272 time steps (0.00 hours)
+Min frame length: 272
+Max frame length: 272
+/Users/rgmbp/.pyenv/versions/tt-vae-gan/lib/python3.7/site-packages/sklearn/base.py:333: UserWarning: Trying to unpickle estimator StandardScaler from version 0.24.1 when using version 1.0.1. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations
+  UserWarning,
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 119.85it/s]
+stage 2: Synthesis waveform from WaveNet
+Traceback (most recent call last):
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/egs/gaussian/../..//evaluate.py", line 36, in <module>
+    from train import RawAudioDataSource, MelSpecDataSource, PyTorchDataset, _pad_2d
+  File "/Users/rgmbp/projects/tt-vae-gan/wavenet_vocoder/train.py", line 31, in <module>
+    import matplotlib
+ModuleNotFoundError: No module named 'matplotlib'
+
+Went to wavenet_vocoder and did `pip uninstall wavenet_vocoder` to clean up (?)
+Then did `pip install -e .`
+WHICH WORKED (?)
+
+But still issues with matplotlib. Apparently there is some issue with zsh and its globbing conflicting with extras_require syntax as per https://stackoverflow.com/questions/30539798/zsh-no-matches-found-requestssecurity, so as per that page, I put the following in ~/.zshrc
+alias pip='noglob pip'
+
+Then this worked (I think) from wavenet_vocoder:
+pip install -e .[test]
+
+Again from wavenet_vocoder/egs/gaussian, did:
+spk="flickr_1" inferdir="pretrained_99_G1" hparams=conf/flickr.json ./infer.sh
+stage 1: Feature Generation
+Sampling frequency: 16000
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 34.78it/s]
+Wrote 1 utterances, 272 time steps (0.00 hours)
+Min frame length: 272
+Max frame length: 272
+/Users/rgmbp/.pyenv/versions/tt-vae-gan/lib/python3.7/site-packages/sklearn/base.py:333: UserWarning: Trying to unpickle estimator StandardScaler from version 0.24.1 when using version 1.0.1. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations
+  UserWarning,
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 115.29it/s]
+stage 2: Synthesis waveform from WaveNet
+Load checkpoint from exp/flickr_1_train_no_dev_flickr/checkpoint_latest.pth
+[W ParallelNative.cpp:214] Warning: Cannot set number of intraop threads after parallel work has started or after set_num_threads call when using native parallel backend (function set_num_threads)
+[W ParallelNative.cpp:214] Warning: Cannot set number of intraop threads after parallel work has started or after set_num_threads call when using native parallel backend (function set_num_threads)
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 69632/69632 [05:49<00:00, 199.36it/s]
+Finished! Check out out/flickr_1_pretrained_99_G1 for generated audio samples.
+
+I also put the input file in voice_conversion/audio_files_for_inference/300274198_eefd8e057e_0.wav
+
+
+
+---
